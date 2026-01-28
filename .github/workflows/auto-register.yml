@@ -65,7 +65,7 @@ jobs:
           ./register-cli \
             --count="${REGISTER_COUNT}" \
             --workers="${REGISTER_WORKERS}" \
-            --headless=true
+            --headless=false
 
       - name: Upload logs (if any)
         if: always()
