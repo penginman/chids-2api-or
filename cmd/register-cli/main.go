@@ -2,17 +2,21 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"golang.org/x/net/proxy"
 	"orchids-api/internal/clerk"
 	"orchids-api/internal/register"
 )
@@ -39,6 +43,7 @@ func main() {
 	pushURL := flag.String("push-url", "", "推送 API 地址 (可从环境变量 PUSH_API_URL 读取)")
 	pushUser := flag.String("push-user", "", "推送 API 用户名 (可从环境变量 PUSH_API_USER 读取)")
 	pushPass := flag.String("push-pass", "", "推送 API 密码 (可从环境变量 PUSH_API_PASS 读取)")
+	socksProxy := flag.String("socks-proxy", "", "SOCKS 代理地址 (可从环境变量 SOCKS_PROXY 读取, 格式: socks5://host:port)")
 
 	flag.Parse()
 
@@ -52,6 +57,9 @@ func main() {
 	if *pushPass == "" {
 		*pushPass = os.Getenv("PUSH_API_PASS")
 	}
+	if *socksProxy == "" {
+		*socksProxy = os.Getenv("SOCKS_PROXY")
+	}
 
 	log.Printf("========================================")
 	log.Printf("自动注册与推送工具启动")
@@ -62,6 +70,11 @@ func main() {
 	log.Printf("  无头模式: %v", *headless)
 	log.Printf("  推送地址: %s", maskURL(*pushURL))
 	log.Printf("  推送用户: %s", maskString(*pushUser))
+	if *socksProxy != "" {
+		log.Printf("  SOCKS代理: %s", maskURL(*socksProxy))
+	} else {
+		log.Printf("  SOCKS代理: (未配置)")
+	}
 	log.Printf("========================================")
 
 	// 验证必需配置
@@ -70,6 +83,15 @@ func main() {
 	}
 	if *pushUser == "" || *pushPass == "" {
 		log.Fatal("错误: 必须提供推送 API 认证信息 (--push-user/--push-pass 或环境变量)")
+	}
+
+	// 设置全局代理 (如果配置了)
+	if *socksProxy != "" {
+		if err := setupProxy(*socksProxy); err != nil {
+			log.Printf("警告: 设置 SOCKS 代理失败: %v, 将使用直连", err)
+		} else {
+			log.Printf("✓ SOCKS 代理设置成功")
+		}
 	}
 
 	// 创建注册服务
@@ -289,4 +311,39 @@ func maskString(s string) string {
 		return "***"
 	}
 	return s[:1] + "***" + s[len(s)-1:]
+}
+
+// setupProxy 设置 SOCKS 代理
+func setupProxy(proxyURL string) error {
+	// 解析代理 URL
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return fmt.Errorf("解析代理 URL 失败: %w", err)
+	}
+
+	// 支持 socks5 协议
+	if u.Scheme != "socks5" {
+		return fmt.Errorf("不支持的代理协议: %s (仅支持 socks5)", u.Scheme)
+	}
+
+	// 创建 SOCKS5 拨号器
+	dialer, err := proxy.SOCKS5("tcp", u.Host, nil, proxy.Direct)
+	if err != nil {
+		return fmt.Errorf("创建 SOCKS5 拨号器失败: %w", err)
+	}
+
+	// 创建自定义 Transport
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.Dial(network, addr)
+		},
+	}
+
+	// 设置为全局默认 HTTP 客户端
+	http.DefaultClient = &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	return nil
 }

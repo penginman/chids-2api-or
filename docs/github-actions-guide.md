@@ -17,11 +17,12 @@
 
 在你的 GitHub 仓库中,进入 `Settings` → `Secrets and variables` → `Actions`,添加以下 Secrets:
 
-| Secret 名称 | 说明 | 示例 |
-|------------|------|------|
-| `PUSH_API_URL` | 推送目标 API 地址 | `https://your-server.com/api/accounts` |
-| `PUSH_API_USER` | Basic Auth 用户名 | `admin` |
-| `PUSH_API_PASS` | Basic Auth 密码 | `your_password` |
+| Secret 名称 | 说明 | 是否必需 | 示例 |
+|------------|------|---------|------|
+| `PUSH_API_URL` | 推送目标 API 地址 | 必需 | `https://your-server.com/api/accounts` |
+| `PUSH_API_USER` | Basic Auth 用户名 | 必需 | `admin` |
+| `PUSH_API_PASS` | Basic Auth 密码 | 必需 | `your_password` |
+| `SOCKS_PROXY` | SOCKS5 代理地址 | 可选 | `socks5://proxy.example.com:1080` |
 
 ### 2. 触发方式
 
@@ -76,6 +77,9 @@ export PUSH_API_URL="http://localhost:3002/api/accounts"
 export PUSH_API_USER="admin"
 export PUSH_API_PASS="admin123"
 
+# 可选: 设置 SOCKS 代理
+export SOCKS_PROXY="socks5://127.0.0.1:1080"
+
 # 运行注册
 ./register-cli --count=1 --workers=1 --headless=true
 ```
@@ -84,12 +88,13 @@ export PUSH_API_PASS="admin123"
 
 | 参数 | 说明 | 默认值 |
 |-----|------|-------|
-| `--count` | 注册数量 | 1 |
+| `--count` | 注册数量 | 5 |
 | `--workers` | 并发线程数 | 2 |
 | `--headless` | 无头模式 | true |
 | `--push-url` | 推送 API 地址 | 从环境变量读取 |
 | `--push-user` | 推送用户名 | 从环境变量读取 |
 | `--push-pass` | 推送密码 | 从环境变量读取 |
+| `--socks-proxy` | SOCKS5 代理地址 | 从环境变量读取 (可选) |
 
 ## 推送数据格式
 
@@ -118,6 +123,33 @@ export PUSH_API_PASS="admin123"
 Authorization: Basic base64(username:password)
 ```
 
+## SOCKS 代理配置 (可选)
+
+如果注册或推送过程中遇到网络问题,可以配置 SOCKS5 代理。
+
+### 配置方法
+
+在 GitHub Secrets 中添加:
+
+```
+SOCKS_PROXY=socks5://proxy.example.com:1080
+```
+
+### 代理格式
+
+- 协议: 仅支持 `socks5://`
+- 格式: `socks5://host:port`
+- 示例:
+  - `socks5://127.0.0.1:1080`
+  - `socks5://proxy.example.com:1080`
+
+### 注意事项
+
+- 代理配置是可选的,如果不配置则使用直连
+- 代理会同时应用于注册和推送过程
+- 如果代理配置错误,程序会回退到直连模式并给出警告
+- 目前仅支持无认证的 SOCKS5 代理
+
 ## 故障排查
 
 ### 注册失败
@@ -132,6 +164,7 @@ Authorization: Basic base64(username:password)
 - 检查 GitHub Actions 日志中的详细错误信息
 - 确认 Chrome 浏览器正确安装
 - 调整并发数 (workers) 避免并发过高
+- 尝试配置 SOCKS 代理 (如果是网络问题)
 
 ### 推送失败
 
@@ -145,6 +178,7 @@ Authorization: Basic base64(username:password)
 - 检查 GitHub Secrets 配置是否正确
 - 确认远程服务器正常运行
 - 查看推送响应的 HTTP 状态码和错误信息
+- 如果是网络超时,尝试配置 SOCKS 代理
 
 ### 工作流执行失败
 

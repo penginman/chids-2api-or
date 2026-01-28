@@ -52,7 +52,8 @@ jobs:
           PUSH_API_URL: ${{ secrets.PUSH_API_URL }}
           PUSH_API_USER: ${{ secrets.PUSH_API_USER }}
           PUSH_API_PASS: ${{ secrets.PUSH_API_PASS }}
-          REGISTER_COUNT: ${{ github.event.inputs.count || '1' }}
+          SOCKS_PROXY: ${{ secrets.SOCKS_PROXY }}
+          REGISTER_COUNT: ${{ github.event.inputs.count || '5' }}
           REGISTER_WORKERS: ${{ github.event.inputs.workers || '2' }}
         run: |
           # 启动 Xvfb 虚拟显示
