@@ -1,0 +1,77 @@
+name: Auto Register and Push
+
+on:
+  # 定时触发 (每天 UTC 00:00,即北京时间早上8点)
+  schedule:
+    - cron: '0 0 * * *'
+
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      count:
+        description: '注册数量'
+        required: false
+        default: '5'
+      workers:
+        description: '并发线程数'
+        required: false
+        default: '2'
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          # 安装 Xvfb 用于虚拟显示
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Build register-cli
+        run: |
+          go build -o register-cli ./cmd/register-cli
+          chmod +x register-cli
+
+      - name: Run registration with Xvfb
+        env:
+          PUSH_API_URL: ${{ secrets.PUSH_API_URL }}
+          PUSH_API_USER: ${{ secrets.PUSH_API_USER }}
+          PUSH_API_PASS: ${{ secrets.PUSH_API_PASS }}
+          REGISTER_COUNT: ${{ github.event.inputs.count || '1' }}
+          REGISTER_WORKERS: ${{ github.event.inputs.workers || '2' }}
+        run: |
+          # 启动 Xvfb 虚拟显示
+          Xvfb :99 -ac -screen 0 1280x1024x24 &
+          export DISPLAY=:99
+
+          # 运行注册程序
+          ./register-cli \
+            --count="${REGISTER_COUNT}" \
+            --workers="${REGISTER_WORKERS}" \
+            --headless=true
+
+      - name: Upload logs (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: register-logs
+          path: |
+            *.log
+            logs/
+          retention-days: 7
+          if-no-files-found: ignore

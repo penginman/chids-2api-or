@@ -20,6 +20,7 @@
 | [API 接口](./docs/api-reference.md) | 所有端点列表、请求/响应格式、认证说明 |
 | [部署指南](./docs/deployment.md) | Docker 构建、本地开发、生产部署 |
 | [配置说明](./docs/configuration.md) | 环境变量、配置文件格式 |
+| [GitHub Actions 使用指南](./docs/github-actions-guide.md) | 自动注册与推送配置、使用说明 |
 
 ## 快速开始
 
@@ -45,3 +46,21 @@ docker compose up -d
 8. **调试日志** - 详细的请求/响应日志
 9. **管理界面** - Web UI 管理账号
 10. **导入导出** - 账号配置备份恢复
+11. **自动注册** - GitHub Actions 自动注册账号并推送
+
+## GitHub Actions 自动注册
+
+本项目支持通过 GitHub Actions 自动注册 Orchids 账号并推送到远程服务器。
+
+### 快速开始
+
+1. 配置 GitHub Secrets:
+   - `PUSH_API_URL`: 推送目标 API 地址
+   - `PUSH_API_USER`: Basic Auth 用户名
+   - `PUSH_API_PASS`: Basic Auth 密码
+
+2. 触发方式:
+   - 定时触发: 每天自动运行 (可配置)
+   - 手动触发: 在 Actions 页面手动运行
+
+3. 详细说明请参考: [GitHub Actions 使用指南](./docs/github-actions-guide.md)
