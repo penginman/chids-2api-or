@@ -35,7 +35,7 @@ func main() {
 	// 命令行参数
 	count := flag.Int("count", 5, "注册数量")
 	workers := flag.Int("workers", 2, "并发线程数")
-	headless := flag.Bool("headless", true, "是否使用无头模式")
+	headless := flag.Bool("headless", false, "是否使用无头模式")
 	pushURL := flag.String("push-url", "", "推送 API 地址 (可从环境变量 PUSH_API_URL 读取)")
 	pushUser := flag.String("push-user", "", "推送 API 用户名 (可从环境变量 PUSH_API_USER 读取)")
 	pushPass := flag.String("push-pass", "", "推送 API 密码 (可从环境变量 PUSH_API_PASS 读取)")
